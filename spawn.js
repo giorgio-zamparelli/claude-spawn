@@ -273,12 +273,6 @@ async function interactiveMode(options) {
       when: () => options.fromExisting && existingBranches.length > 0
     },
     {
-      type: 'confirm',
-      name: 'confirmCreate',
-      message: (answers) => `Create worktree for branch '${answers.branchName}'?`,
-      default: true
-    },
-    {
       type: 'list',
       name: 'editor',
       message: 'Which editor would you like to launch?',
@@ -293,11 +287,6 @@ async function interactiveMode(options) {
   ];
   
   const answers = await inquirer.prompt(questions);
-  
-  if (!answers.confirmCreate) {
-    console.log(chalk.gray('Operation cancelled'));
-    process.exit(0);
-  }
   
   // Override options with interactive choices
   if (answers.editor !== undefined) {
