@@ -124,6 +124,10 @@ async function removeWorktree(branchName) {
         }
       }
     }
+  } else if (!worktree) {
+    // Neither worktree nor branch exists
+    console.log(chalk.yellow(`No worktree or branch found with name '${branchName}'`));
+    return false;
   }
 
   return true;
