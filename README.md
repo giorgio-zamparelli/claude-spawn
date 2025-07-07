@@ -1,6 +1,29 @@
-# Spawner
+# Claude Spawn
 
 A Git worktree management CLI tool that creates organized worktrees with REPO-BRANCH naming convention.
+
+## Installation
+
+Install globally using npm:
+
+```bash
+npm install -g claude-spawn
+```
+
+## Quick Start
+
+Once installed, use the `spawn` command:
+
+```bash
+# Interactive mode - prompts for branch name and options
+spawn
+
+# Create a new worktree directly
+spawn feature-branch-name
+
+# List all existing worktrees
+spawn --list
+```
 
 ## Features
 
@@ -13,18 +36,6 @@ A Git worktree management CLI tool that creates organized worktrees with REPO-BR
 - Branch name validation
 - List all existing worktrees with colored output
 - Handle existing worktree conflicts
-
-## Installation
-
-```bash
-npm install
-```
-
-To make the `spawn` command available globally:
-
-```bash
-npm link
-```
 
 ## Usage
 
