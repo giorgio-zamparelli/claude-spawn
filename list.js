@@ -1,64 +1,6 @@
-import { execSync } from 'child_process';
 import path from 'path';
 import chalk from 'chalk';
-
-// Utility functions
-function executeCommand(command, options = {}) {
-  try {
-    return execSync(command, { encoding: 'utf8', ...options });
-  } catch {
-    return null;
-  }
-}
-
-function isGitRepository() {
-  const result = executeCommand('git rev-parse --is-inside-work-tree');
-  return result && result.trim() === 'true';
-}
-
-function getGitRootDirectory() {
-  const result = executeCommand('git rev-parse --show-toplevel');
-  return result ? result.trim() : null;
-}
-
-function getWorktrees() {
-  const result = executeCommand('git worktree list --porcelain');
-  if (!result) return [];
-
-  const worktrees = [];
-  const lines = result.trim().split('\n');
-  let currentWorktree = {};
-
-  for (const line of lines) {
-    if (line.startsWith('worktree ')) {
-      if (currentWorktree.path) {
-        worktrees.push(currentWorktree);
-      }
-      currentWorktree = { path: line.substring(9) };
-    } else if (line.startsWith('HEAD ')) {
-      currentWorktree.head = line.substring(5);
-    } else if (line.startsWith('branch ')) {
-      currentWorktree.branch = line.substring(7);
-    } else if (line === 'bare') {
-      currentWorktree.bare = true;
-    } else if (line.startsWith('detached')) {
-      currentWorktree.detached = true;
-    } else if (line === 'prunable') {
-      currentWorktree.prunable = true;
-    } else if (line === '') {
-      if (currentWorktree.path) {
-        worktrees.push(currentWorktree);
-        currentWorktree = {};
-      }
-    }
-  }
-
-  if (currentWorktree.path) {
-    worktrees.push(currentWorktree);
-  }
-
-  return worktrees;
-}
+import { isGitRepository, getGitRootDirectory, getWorktrees } from './utils/git.js';
 
 export async function listWorktrees() {
   if (!isGitRepository()) {
