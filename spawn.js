@@ -64,6 +64,8 @@ function getWorktrees() {
       currentWorktree.bare = true;
     } else if (line.startsWith('detached')) {
       currentWorktree.detached = true;
+    } else if (line === 'prunable') {
+      currentWorktree.prunable = true;
     } else if (line === '') {
       if (currentWorktree.path) {
         worktrees.push(currentWorktree);
@@ -174,8 +176,41 @@ async function createWorktree(branchName, options) {
   }
 }
 
-async function switchToWorktree(worktreePath) {
+async function switchToWorktree(worktreePath, branchName) {
   console.log(chalk.blue(`\nSwitching to worktree: ${worktreePath}`));
+
+  // Check if the worktree directory exists
+  if (!fs.existsSync(worktreePath)) {
+    console.log(chalk.yellow(`Worktree directory not found. Recreating it...`));
+
+    // Extract branch name from the worktree info if not provided
+    if (!branchName) {
+      const worktrees = getWorktrees();
+      const worktreeInfo = worktrees.find((wt) => wt.path === worktreePath);
+      if (worktreeInfo && worktreeInfo.branch) {
+        branchName = worktreeInfo.branch.replace('refs/heads/', '');
+      } else {
+        console.error(chalk.red(`Cannot determine branch name for worktree: ${worktreePath}`));
+        process.exit(1);
+      }
+    }
+
+    // Recreate the worktree
+    const gitRoot = getGitRootDirectory();
+    const parentDir = path.dirname(worktreePath);
+
+    try {
+      process.chdir(parentDir);
+      const gitWorktreeCommand = `git -C "${gitRoot}" worktree add "${worktreePath}" "${branchName}"`;
+      console.log(chalk.gray(`Running: ${gitWorktreeCommand}`));
+
+      execSync(gitWorktreeCommand, { stdio: 'inherit' });
+      console.log(chalk.green(`✅ Worktree recreated successfully!`));
+    } catch (error) {
+      console.error(chalk.red(`Failed to recreate worktree: ${error.message}`));
+      process.exit(1);
+    }
+  }
 
   try {
     process.chdir(worktreePath);
@@ -300,8 +335,14 @@ async function interactiveMode(options) {
     choices.push(new inquirer.Separator(chalk.gray('── Existing Worktrees ──')));
     otherWorktrees.forEach((wt) => {
       const branch = wt.branch || (wt.detached ? 'detached HEAD' : 'no branch');
+      const exists = fs.existsSync(wt.path);
+      const status = !exists
+        ? chalk.red(' [missing]')
+        : wt.prunable
+          ? chalk.yellow(' [prunable]')
+          : '';
       choices.push({
-        name: `${chalk.blue(path.basename(wt.path))} ${chalk.gray(`(${branch})`)}`,
+        name: `${chalk.blue(path.basename(wt.path))} ${chalk.gray(`(${branch})`)}${status}`,
         value: { type: 'switch', path: wt.path, branch: wt.branch },
       });
     });
@@ -361,7 +402,8 @@ async function interactiveMode(options) {
   }
 
   if (selection.type === 'switch') {
-    await switchToWorktree(selection.path);
+    const branchName = selection.branch ? selection.branch.replace('refs/heads/', '') : null;
+    await switchToWorktree(selection.path, branchName);
     return;
   }
 
