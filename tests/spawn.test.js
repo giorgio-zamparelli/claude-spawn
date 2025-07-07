@@ -132,7 +132,7 @@ describe('Spawn Utility Functions', () => {
   remotes/origin/HEAD -> origin/main`;
       execSync.mockReturnValue(mockOutput);
       const result = spawn.getExistingBranches();
-      expect(result).toEqual(['main', 'feature-1', 'feature-2', 'HEAD -> origin/main']);
+      expect(result).toEqual(['main', 'develop', 'feature-1', 'feature-2', 'HEAD -> origin/main']);
     });
 
     it('should return empty array when no branches', () => {

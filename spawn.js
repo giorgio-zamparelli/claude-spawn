@@ -35,11 +35,22 @@ function getExistingBranches() {
   const result = executeCommand('git branch -a');
   if (!result) return [];
 
-  return result
-    .split('\n')
-    .map((branch) => branch.trim())
-    .filter((branch) => branch && !branch.startsWith('*'))
-    .map((branch) => branch.replace(/^remotes\/origin\//, ''));
+  return (
+    result
+      .split('\n')
+      .map((branch) => {
+        // Remove the current branch marker (*) and any leading/trailing spaces
+        let cleanBranch = branch.replace(/^\*?\s+/, '').trim();
+        // Remove any leading + or - markers (from git branch -a output)
+        cleanBranch = cleanBranch.replace(/^[+-]\s+/, '');
+        // Remove remote prefix if present
+        cleanBranch = cleanBranch.replace(/^remotes\/origin\//, '');
+        return cleanBranch;
+      })
+      .filter((branch) => branch && branch !== '')
+      // Remove duplicates
+      .filter((branch, index, self) => self.indexOf(branch) === index)
+  );
 }
 
 function getWorktrees() {
@@ -87,8 +98,16 @@ function validateBranchName(name) {
   if (invalidChars.test(name)) {
     return 'Branch name contains invalid characters';
   }
-  if (name.startsWith('-') || name.endsWith('.') || name.endsWith('.lock')) {
+  if (
+    name.startsWith('-') ||
+    name.startsWith('+') ||
+    name.endsWith('.') ||
+    name.endsWith('.lock')
+  ) {
     return 'Invalid branch name format';
+  }
+  if (name.includes('..') || name.includes('@{') || name.includes('\\')) {
+    return 'Branch name contains invalid sequences';
   }
   return true;
 }
