@@ -6,6 +6,7 @@ import { createRemoveCommand } from './remove.js';
 import { createAddCommand } from './add.js';
 import { createDiffCommand } from './diff.js';
 import { createMergeCommand } from './merge.js';
+import { createApproveCommand } from './approve.js';
 
 // Setup commander
 program
@@ -24,6 +25,9 @@ createDiffCommand(program);
 
 // Add merge subcommand
 createMergeCommand(program);
+
+// Add approve subcommand
+createApproveCommand(program);
 
 // Default command for creating/managing worktrees
 createAddCommand(program);
