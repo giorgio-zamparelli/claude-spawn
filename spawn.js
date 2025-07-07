@@ -156,7 +156,11 @@ async function createWorktree(branchName, options) {
       const editor = options.editor || 'claude';
       console.log(chalk.blue(`\nLaunching ${editor}...`));
       try {
-        execSync(editor, { stdio: 'inherit' });
+        if (editor === 'claude') {
+          execSync(`claude --allow-folder "${worktreePath}"`, { stdio: 'inherit' });
+        } else {
+          execSync(editor, { stdio: 'inherit' });
+        }
       } catch (error) {
         console.error(chalk.yellow(`Warning: Could not launch ${editor}. Make sure it's installed and in your PATH.`));
       }
@@ -178,7 +182,7 @@ async function switchToWorktree(worktreePath) {
     // Launch editor
     console.log(chalk.blue(`\nLaunching claude...`));
     try {
-      execSync('claude', { stdio: 'inherit' });
+      execSync(`claude --allow-folder "${worktreePath}"`, { stdio: 'inherit' });
     } catch (error) {
       console.error(chalk.yellow(`Warning: Could not launch claude. Make sure it's installed and in your PATH.`));
     }
