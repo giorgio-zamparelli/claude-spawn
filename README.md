@@ -1,6 +1,6 @@
 # Claude Spawn
 
-A Git worktree management CLI tool that creates organized worktrees with REPO-BRANCH naming convention.
+A CLI tool to launch Claude in a new git worktree directory with just one command.
 
 ## Installation
 
