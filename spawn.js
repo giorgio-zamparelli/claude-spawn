@@ -5,6 +5,7 @@ import path from 'path';
 import fs from 'fs';
 import { program } from 'commander';
 import inquirer from 'inquirer';
+import chalk from 'chalk';
 
 // Utility functions
 function executeCommand(command, options = {}) {
@@ -40,6 +41,43 @@ function getExistingBranches() {
     .map(branch => branch.replace(/^remotes\/origin\//, ''));
 }
 
+function getWorktrees() {
+  const result = executeCommand('git worktree list --porcelain');
+  if (!result) return [];
+  
+  const worktrees = [];
+  const lines = result.trim().split('\n');
+  let currentWorktree = {};
+  
+  for (const line of lines) {
+    if (line.startsWith('worktree ')) {
+      if (currentWorktree.path) {
+        worktrees.push(currentWorktree);
+      }
+      currentWorktree = { path: line.substring(9) };
+    } else if (line.startsWith('HEAD ')) {
+      currentWorktree.head = line.substring(5);
+    } else if (line.startsWith('branch ')) {
+      currentWorktree.branch = line.substring(7);
+    } else if (line === 'bare') {
+      currentWorktree.bare = true;
+    } else if (line.startsWith('detached')) {
+      currentWorktree.detached = true;
+    } else if (line === '') {
+      if (currentWorktree.path) {
+        worktrees.push(currentWorktree);
+        currentWorktree = {};
+      }
+    }
+  }
+  
+  if (currentWorktree.path) {
+    worktrees.push(currentWorktree);
+  }
+  
+  return worktrees;
+}
+
 function validateBranchName(name) {
   // Basic validation for git branch names
   const invalidChars = /[\s~^:?*\[\\]/;
@@ -58,13 +96,13 @@ function worktreeExists(worktreePath) {
 
 async function createWorktree(branchName, options) {
   if (!isGitRepository()) {
-    console.error('Error: Not in a git repository');
+    console.error(chalk.red('Error: Not in a git repository'));
     process.exit(1);
   }
 
   const gitRoot = getGitRootDirectory();
   if (!gitRoot) {
-    console.error('Error: Could not determine git root directory');
+    console.error(chalk.red('Error: Could not determine git root directory'));
     process.exit(1);
   }
 
@@ -76,7 +114,7 @@ async function createWorktree(branchName, options) {
 
   // Check if worktree already exists
   if (worktreeExists(worktreePath)) {
-    console.error(`Error: Worktree already exists at ${worktreePath}`);
+    console.error(chalk.yellow(`Warning: Worktree already exists at ${worktreePath}`));
     const { overwrite } = await inquirer.prompt([{
       type: 'confirm',
       name: 'overwrite',
@@ -88,71 +126,137 @@ async function createWorktree(branchName, options) {
       process.exit(1);
     }
     
-    console.log('Removing existing worktree...');
+    console.log(chalk.yellow('Removing existing worktree...'));
     try {
       execSync(`git worktree remove "${worktreePath}" --force`, { stdio: 'inherit' });
     } catch (error) {
-      console.error('Failed to remove existing worktree');
+      console.error(chalk.red('Failed to remove existing worktree'));
       process.exit(1);
     }
   }
 
-  console.log(`\nCreating worktree for branch '${branchName}'...`);
-  console.log(`Repository: ${gitRoot}`);
-  console.log(`Worktree path: ${worktreePath}`);
+  console.log(chalk.blue(`\nCreating worktree for branch '${branchName}'...`));
+  console.log(chalk.gray(`Repository: ${gitRoot}`));
+  console.log(chalk.gray(`Worktree path: ${worktreePath}`));
 
   try {
     process.chdir(parentDir);
     
     const gitWorktreeCommand = `git -C "${gitRoot}" worktree add "${worktreePath}" -b "${branchName}"`;
-    console.log(`Running: ${gitWorktreeCommand}`);
+    console.log(chalk.gray(`Running: ${gitWorktreeCommand}`));
     
     execSync(gitWorktreeCommand, { stdio: 'inherit' });
     
-    console.log(`\nWorktree created successfully!`);
-    console.log(`Changing to worktree directory: ${worktreePath}`);
+    console.log(chalk.green(`\n✅ Worktree created successfully!`));
+    console.log(chalk.blue(`Changing to worktree directory: ${worktreePath}`));
     
     process.chdir(worktreePath);
     
     // Launch editor if not disabled
     if (!options.noEditor) {
       const editor = options.editor || 'claude';
-      console.log(`\nLaunching ${editor}...`);
+      console.log(chalk.blue(`\nLaunching ${editor}...`));
       try {
         execSync(editor, { stdio: 'inherit' });
       } catch (error) {
-        console.error(`Warning: Could not launch ${editor}. Make sure it's installed and in your PATH.`);
+        console.error(chalk.yellow(`Warning: Could not launch ${editor}. Make sure it's installed and in your PATH.`));
       }
     }
     
   } catch (error) {
-    console.error(`\nError creating worktree: ${error.message}`);
+    console.error(chalk.red(`\nError creating worktree: ${error.message}`));
+    process.exit(1);
+  }
+}
+
+async function switchToWorktree(worktreePath) {
+  console.log(chalk.blue(`\nSwitching to worktree: ${worktreePath}`));
+  
+  try {
+    process.chdir(worktreePath);
+    console.log(chalk.green(`✅ Changed to ${worktreePath}`));
+    
+    // Launch editor
+    console.log(chalk.blue(`\nLaunching claude...`));
+    try {
+      execSync('claude', { stdio: 'inherit' });
+    } catch (error) {
+      console.error(chalk.yellow(`Warning: Could not launch claude. Make sure it's installed and in your PATH.`));
+    }
+  } catch (error) {
+    console.error(chalk.red(`Error switching to worktree: ${error.message}`));
     process.exit(1);
   }
 }
 
 async function interactiveMode(options) {
-  console.log('Welcome to Git Worktree Spawner!');
+  console.log(chalk.cyan.bold('\n🌳 Welcome to Git Worktree Spawner!\n'));
   
   const currentBranch = getCurrentBranch();
   if (currentBranch) {
-    console.log(`Current branch: ${currentBranch}`);
+    console.log(chalk.gray(`Current branch: ${chalk.white(currentBranch)}`));
   }
   
-  // Show existing worktrees
-  const worktreeList = executeCommand('git worktree list');
-  if (worktreeList) {
-    const worktreeLines = worktreeList.trim().split('\n');
-    if (worktreeLines.length === 1) {
-      console.log('\nNo additional worktrees found for this repository.');
-    } else {
-      console.log('\nExisting worktrees:');
-      console.log(worktreeList);
-    }
-  }
+  // Get existing worktrees
+  const worktrees = getWorktrees();
+  const gitRoot = getGitRootDirectory();
+  const currentPath = gitRoot;
   
   const existingBranches = getExistingBranches();
   
+  // Build choices list with existing worktrees and create new option
+  const choices = [];
+  
+  // Add existing worktrees (except current)
+  const otherWorktrees = worktrees.filter(wt => wt.path !== currentPath);
+  if (otherWorktrees.length > 0) {
+    choices.push(new inquirer.Separator(chalk.gray('── Existing Worktrees ──')));
+    otherWorktrees.forEach(wt => {
+      const branch = wt.branch || (wt.detached ? 'detached HEAD' : 'no branch');
+      choices.push({
+        name: `${chalk.blue(path.basename(wt.path))} ${chalk.gray(`(${branch})`)}`,
+        value: { type: 'switch', path: wt.path }
+      });
+    });
+  }
+  
+  // Add create new option
+  choices.push(new inquirer.Separator(chalk.gray('── Create New ──')));
+  choices.push({
+    name: chalk.green('✨ Create new worktree'),
+    value: { type: 'create' }
+  });
+  
+  // Add separator and exit
+  choices.push(new inquirer.Separator());
+  choices.push({
+    name: chalk.gray('Exit'),
+    value: { type: 'exit' }
+  });
+  
+  // Show current worktree info
+  console.log(chalk.gray(`\nCurrently in: ${chalk.white(path.basename(currentPath))} ${chalk.gray(`(${currentBranch || 'no branch'})`)}}`));
+  
+  // Ask user to select
+  const { selection } = await inquirer.prompt([{
+    type: 'list',
+    name: 'selection',
+    message: 'Select a worktree or create a new one:',
+    choices: choices,
+    pageSize: 15
+  }]);
+  
+  if (selection.type === 'exit') {
+    console.log(chalk.gray('Goodbye!'));
+    process.exit(0);
+  }
+  
+  if (selection.type === 'switch') {
+    await switchToWorktree(selection.path);
+    return;
+  }
+  
+  // Create new worktree flow
   const questions = [
     {
       type: 'input',
@@ -191,7 +295,7 @@ async function interactiveMode(options) {
   const answers = await inquirer.prompt(questions);
   
   if (!answers.confirmCreate) {
-    console.log('Operation cancelled');
+    console.log(chalk.gray('Operation cancelled'));
     process.exit(0);
   }
   
@@ -208,17 +312,28 @@ async function interactiveMode(options) {
 
 async function listWorktrees() {
   if (!isGitRepository()) {
-    console.error('Error: Not in a git repository');
+    console.error(chalk.red('Error: Not in a git repository'));
     process.exit(1);
   }
   
-  const result = executeCommand('git worktree list');
-  if (result) {
-    console.log('Current worktrees:');
-    console.log(result);
+  const worktrees = getWorktrees();
+  const gitRoot = getGitRootDirectory();
+  
+  console.log(chalk.cyan.bold('\n🌳 Git Worktrees:\n'));
+  
+  if (worktrees.length === 0) {
+    console.log(chalk.yellow('No worktrees found.'));
   } else {
-    console.error('Error: Could not list worktrees');
-    process.exit(1);
+    worktrees.forEach((wt, index) => {
+      const isCurrent = wt.path === gitRoot;
+      const branch = wt.branch || (wt.detached ? chalk.yellow('detached HEAD') : chalk.gray('no branch'));
+      const marker = isCurrent ? chalk.green(' ← current') : '';
+      
+      console.log(chalk.white(`${index + 1}. ${chalk.bold(path.basename(wt.path))}`));
+      console.log(chalk.gray(`   Path: ${wt.path}`));
+      console.log(chalk.gray(`   Branch: ${branch}${marker}`));
+      console.log();
+    });
   }
 }
 
@@ -242,7 +357,7 @@ program
       // Validate branch name
       const validation = validateBranchName(branchName);
       if (validation !== true) {
-        console.error(`Error: ${validation}`);
+        console.error(chalk.red(`Error: ${validation}`));
         process.exit(1);
       }
       await createWorktree(branchName, options);

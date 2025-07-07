@@ -5,11 +5,13 @@ A Git worktree management CLI tool that creates timestamped worktrees for better
 ## Features
 
 - Create timestamped git worktrees (YYYY-MM-DD-branch-name format)
-- Interactive mode with prompts using Inquirer.js
+- Interactive mode with colorful prompts using Inquirer.js and Chalk
+- Single menu to select existing worktrees or create new ones
+- Switch between worktrees with automatic editor launch
 - Choose from existing branches or create new ones
 - Automatic editor launch (Claude, VS Code, or none)
 - Branch name validation
-- List all existing worktrees
+- List all existing worktrees with colored output
 - Handle existing worktree conflicts
 
 ## Installation
