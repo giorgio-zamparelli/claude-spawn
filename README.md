@@ -1,10 +1,10 @@
 # Spawner
 
-A Git worktree management CLI tool that creates timestamped worktrees for better branch organization.
+A Git worktree management CLI tool that creates organized worktrees with REPO-BRANCH naming convention.
 
 ## Features
 
-- Create timestamped git worktrees (YYYY-MM-DD-branch-name format)
+- Create git worktrees with REPO-BRANCH naming (e.g., waiterio-three)
 - Interactive mode with colorful prompts using Inquirer.js and Chalk
 - Single menu to select existing worktrees or create new ones
 - Switch between worktrees with automatic editor launch
@@ -34,7 +34,7 @@ Create a new worktree with a branch name:
 
 ```bash
 spawn fix-bug
-# Creates worktree at ../2025-01-07-fix-bug
+# Creates worktree at ../myrepo-fix-bug
 ```
 
 ### Interactive Mode
@@ -70,9 +70,9 @@ spawn -h
 ## How It Works
 
 1. Validates that you're in a git repository
-2. Creates a worktree in the parent directory with format: `YYYY-MM-DD-<branch-name>`
+2. Creates a worktree in the parent directory with format: `<repo-name>-<branch-name>`
 3. Creates and checks out a new branch
-4. Optionally launches your preferred editor
+4. Automatically launches Claude editor (or specified editor)
 
 ## Examples
 

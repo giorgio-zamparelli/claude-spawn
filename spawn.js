@@ -108,8 +108,7 @@ async function createWorktree(branchName, options) {
 
   const repoName = path.basename(gitRoot);
   const parentDir = path.dirname(gitRoot);
-  const timestamp = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-  const worktreeName = `${timestamp}-${branchName}`;
+  const worktreeName = `${repoName}-${branchName}`;
   const worktreePath = path.join(parentDir, worktreeName);
 
   // Check if worktree already exists

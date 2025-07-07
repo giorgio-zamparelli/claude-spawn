@@ -34,7 +34,7 @@ The codebase uses ESM modules and has a simple flat structure:
 - `spawn.js` - Main CLI tool built with Commander.js and Inquirer.js that:
   - Validates it's running in a git repository
   - Creates a new git worktree in the parent directory
-  - Names the worktree with format: `YYYY-MM-DD-<feature-name>`
+  - Names the worktree with format: `<repo-name>-<branch-name>`
   - Creates and checks out a new branch with the same name
   - Offers interactive mode for branch selection and editor choice
   - Supports multiple editors (Claude, VS Code)
@@ -46,10 +46,10 @@ The codebase uses ESM modules and has a simple flat structure:
 The spawner tool workflow (spawn.js:1-244):
 1. Checks if current directory is a git repository
 2. Gets the parent directory of the current repository
-3. Creates a timestamped directory name (YYYY-MM-DD-feature-name)
+3. Creates directory name with format: repo-name-branch-name
 4. Validates branch names and handles existing worktrees
 5. Creates a git worktree with a new branch
-6. Optionally launches editor (Claude by default, VS Code, or none)
+6. Automatically launches Claude editor (unless --no-editor is used)
 
 The tool uses:
 - ESM modules (`type: "module"` in package.json)
