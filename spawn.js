@@ -271,30 +271,10 @@ async function interactiveMode(options) {
       message: 'Select an existing branch:',
       choices: existingBranches,
       when: () => options.fromExisting && existingBranches.length > 0
-    },
-    {
-      type: 'list',
-      name: 'editor',
-      message: 'Which editor would you like to launch?',
-      choices: [
-        { name: 'Claude', value: 'claude' },
-        { name: 'VS Code', value: 'code' },
-        { name: 'None', value: null }
-      ],
-      default: 'claude',
-      when: () => !options.noEditor && !options.editor
     }
   ];
   
   const answers = await inquirer.prompt(questions);
-  
-  // Override options with interactive choices
-  if (answers.editor !== undefined) {
-    options.editor = answers.editor;
-    if (answers.editor === null) {
-      options.noEditor = true;
-    }
-  }
   
   await createWorktree(answers.branchName, options);
 }
