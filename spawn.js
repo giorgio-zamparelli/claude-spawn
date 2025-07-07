@@ -500,18 +500,23 @@ async function listWorktrees() {
 program
   .name('spawn')
   .description('Git worktree management tool - creates timestamped worktrees')
-  .version('1.0.0')
+  .version('1.0.0');
+
+// Add list subcommand
+program
+  .command('list')
+  .description('List all worktrees')
+  .action(async () => {
+    await listWorktrees();
+  });
+
+// Default command for creating/managing worktrees
+program
   .argument('[branch-name]', 'Name of the branch to create')
   .option('-e, --editor <editor>', 'Editor to launch (default: claude)')
   .option('-n, --no-editor', 'Do not launch any editor')
   .option('-x, --from-existing', 'Choose from existing branches')
-  .option('-l, --list', 'List all worktrees')
   .action(async (branchName, options) => {
-    if (options.list) {
-      await listWorktrees();
-      return;
-    }
-
     if (branchName) {
       // Validate branch name
       const validation = validateBranchName(branchName);
