@@ -9,6 +9,7 @@ This is a Git worktree management CLI tool written in Node.js. The main function
 ## Commands
 
 ### Running the Tool
+
 ```bash
 # Execute the spawner CLI
 ./spawn.js <feature-name>
@@ -20,6 +21,7 @@ node index.js
 ```
 
 ### Development Commands
+
 ```bash
 # Install dependencies (currently none)
 npm install
@@ -31,6 +33,7 @@ npm test
 ## Architecture
 
 The codebase uses ESM modules and has a simple flat structure:
+
 - `spawn.js` - Main CLI tool built with Commander.js and Inquirer.js that:
   - Validates it's running in a git repository
   - Creates a new git worktree in the parent directory
@@ -44,6 +47,7 @@ The codebase uses ESM modules and has a simple flat structure:
 ## Key Implementation Details
 
 The spawner tool workflow (spawn.js:1-244):
+
 1. Checks if current directory is a git repository
 2. Gets the parent directory of the current repository
 3. Creates directory name with format: repo-name-branch-name
@@ -52,6 +56,7 @@ The spawner tool workflow (spawn.js:1-244):
 6. Automatically launches Claude editor (unless --no-editor is used)
 
 The tool uses:
+
 - ESM modules (`type: "module"` in package.json)
 - Commander.js for CLI argument parsing
 - Inquirer.js for interactive prompts

@@ -100,5 +100,6 @@ spawn -x
 ## Development
 
 This project uses npm for package management and includes:
+
 - Commander.js for CLI argument parsing
 - Inquirer.js for interactive prompts
