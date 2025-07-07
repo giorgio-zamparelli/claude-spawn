@@ -30,22 +30,29 @@ npm test
 
 ## Architecture
 
-The codebase has a simple flat structure:
-- `spawn.js` - Main CLI tool that:
+The codebase uses ESM modules and has a simple flat structure:
+- `spawn.js` - Main CLI tool built with Commander.js and Inquirer.js that:
   - Validates it's running in a git repository
   - Creates a new git worktree in the parent directory
   - Names the worktree with format: `YYYY-MM-DD-<feature-name>`
   - Creates and checks out a new branch with the same name
-  - Launches Claude editor in the new worktree
+  - Offers interactive mode for branch selection and editor choice
+  - Supports multiple editors (Claude, VS Code)
+  - Lists existing worktrees
 - `index.js` - Simple entry point (currently just a hello world placeholder)
 
 ## Key Implementation Details
 
-The spawner tool workflow (spawn.js:1-43):
+The spawner tool workflow (spawn.js:1-244):
 1. Checks if current directory is a git repository
 2. Gets the parent directory of the current repository
 3. Creates a timestamped directory name (YYYY-MM-DD-feature-name)
-4. Creates a git worktree with a new branch
-5. Launches Claude editor in the new worktree directory
+4. Validates branch names and handles existing worktrees
+5. Creates a git worktree with a new branch
+6. Optionally launches editor (Claude by default, VS Code, or none)
 
-The tool uses Node.js child_process to execute git commands and assumes the `claude` command is available in the system PATH.
+The tool uses:
+- ESM modules (`type: "module"` in package.json)
+- Commander.js for CLI argument parsing
+- Inquirer.js for interactive prompts
+- Node.js child_process to execute git commands

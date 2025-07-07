@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
-const { execSync } = require('child_process');
-const path = require('path');
-const fs = require('fs');
-const { program } = require('commander');
-const inquirer = require('inquirer');
+import { execSync } from 'child_process';
+import path from 'path';
+import fs from 'fs';
+import { program } from 'commander';
+import inquirer from 'inquirer';
 
 // Utility functions
 function executeCommand(command, options = {}) {
@@ -137,6 +137,18 @@ async function interactiveMode(options) {
   const currentBranch = getCurrentBranch();
   if (currentBranch) {
     console.log(`Current branch: ${currentBranch}`);
+  }
+  
+  // Show existing worktrees
+  const worktreeList = executeCommand('git worktree list');
+  if (worktreeList) {
+    const worktreeLines = worktreeList.trim().split('\n');
+    if (worktreeLines.length === 1) {
+      console.log('\nNo additional worktrees found for this repository.');
+    } else {
+      console.log('\nExisting worktrees:');
+      console.log(worktreeList);
+    }
   }
   
   const existingBranches = getExistingBranches();
