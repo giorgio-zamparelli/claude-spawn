@@ -73,8 +73,39 @@ export async function approveCommand() {
   console.log(chalk.gray(`Target branch: ${chalk.white(mainBranch)}`));
 
   const gitRoot = getGitRootDirectory();
-  const repoName = path.basename(gitRoot);
+  const currentDirName = path.basename(gitRoot);
   const parentDir = path.dirname(gitRoot);
+
+  // Extract the base repo name by removing the branch suffix
+  // If we're in 'waiterio-stiloso-testing', the base repo name is 'waiterio'
+  let repoName = currentDirName;
+
+  // Check if this is a worktree with branch suffix
+  if (currentDirName.includes('-') && currentDirName !== currentBranch) {
+    // Try to find the base repo name by checking what exists
+    const parts = currentDirName.split('-');
+
+    // Try different combinations to find the main worktree
+    for (let i = 1; i <= parts.length; i++) {
+      const possibleRepoName = parts.slice(0, i).join('-');
+      const possibleMainPath = path.join(parentDir, possibleRepoName);
+
+      if (fs.existsSync(possibleMainPath) && fs.statSync(possibleMainPath).isDirectory()) {
+        // Verify it's a git repository
+        try {
+          execSync('git rev-parse --git-dir', {
+            cwd: possibleMainPath,
+            stdio: 'pipe',
+          });
+          repoName = possibleRepoName;
+          break;
+        } catch {
+          // Not a git repo, continue searching
+        }
+      }
+    }
+  }
+
   const mainWorktreePath = path.join(parentDir, repoName);
 
   // Check if main worktree exists
