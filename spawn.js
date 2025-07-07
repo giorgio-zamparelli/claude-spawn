@@ -200,6 +200,19 @@ async function switchToWorktree(worktreePath, branchName) {
     const parentDir = path.dirname(worktreePath);
 
     try {
+      // First, remove the missing worktree registration
+      console.log(chalk.gray('Removing stale worktree registration...'));
+      try {
+        execSync(`git worktree remove "${worktreePath}" --force`, { stdio: 'pipe' });
+      } catch {
+        // If remove fails, try prune
+        try {
+          execSync('git worktree prune', { stdio: 'pipe' });
+        } catch {
+          // Ignore prune errors
+        }
+      }
+
       process.chdir(parentDir);
       const gitWorktreeCommand = `git -C "${gitRoot}" worktree add "${worktreePath}" "${branchName}"`;
       console.log(chalk.gray(`Running: ${gitWorktreeCommand}`));
