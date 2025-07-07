@@ -84,6 +84,30 @@ function getExistingBranches() {
   );
 }
 
+function hasUncommittedChanges(worktreePath) {
+  try {
+    const result = execSync(`git -C "${worktreePath}" status --porcelain`, { encoding: 'utf8' });
+    return result.trim().length > 0;
+  } catch {
+    return false;
+  }
+}
+
+function hasUnmergedCommits(branchName) {
+  try {
+    // Check if branch has commits not merged to main/master
+    const mainBranch =
+      executeCommand('git symbolic-ref refs/remotes/origin/HEAD --short')
+        ?.trim()
+        .replace('origin/', '') || 'main';
+    const result = execSync(`git log ${mainBranch}..${branchName} --oneline`, { encoding: 'utf8' });
+    return result.trim().length > 0;
+  } catch {
+    // If the command fails, assume there might be unmerged commits
+    return true;
+  }
+}
+
 async function removeWorktree(branchName) {
   const worktrees = getWorktrees();
   const gitRoot = getGitRootDirectory();
@@ -95,6 +119,8 @@ async function removeWorktree(branchName) {
     return wtBranch === branchName || path.basename(wt.path) === `${repoName}-${branchName}`;
   });
 
+  let worktreeRemoved = false;
+
   if (worktree) {
     // Check if this is the current worktree
     if (worktree.path === gitRoot) {
@@ -102,10 +128,20 @@ async function removeWorktree(branchName) {
       process.exit(1);
     }
 
+    // Check for uncommitted changes
+    if (fs.existsSync(worktree.path) && hasUncommittedChanges(worktree.path)) {
+      console.error(chalk.red(`Error: Worktree has uncommitted changes at ${worktree.path}`));
+      console.log(
+        chalk.yellow('Please commit or stash your changes before removing the worktree.')
+      );
+      return false;
+    }
+
     console.log(chalk.yellow(`Removing worktree at ${worktree.path}...`));
     try {
       execSync(`git worktree remove "${worktree.path}" --force`, { stdio: 'inherit' });
       console.log(chalk.green('✅ Worktree removed successfully'));
+      worktreeRemoved = true;
     } catch (error) {
       console.error(chalk.red(`Failed to remove worktree: ${error.message}`));
       return false;
@@ -115,23 +151,50 @@ async function removeWorktree(branchName) {
   // Check if the branch exists
   const branches = getExistingBranches();
   if (branches.includes(branchName)) {
-    const { removeBranch } = await inquirer.prompt([
-      {
-        type: 'confirm',
-        name: 'removeBranch',
-        message: `Do you also want to delete the branch '${branchName}'?`,
-        default: true,
-      },
-    ]);
+    let shouldDeleteBranch = true;
+    let userConfirmed = false;
 
-    if (removeBranch) {
-      console.log(chalk.yellow(`Deleting branch ${branchName}...`));
-      try {
-        execSync(`git branch -D "${branchName}"`, { stdio: 'inherit' });
-        console.log(chalk.green('✅ Branch deleted successfully'));
-      } catch (error) {
-        console.error(chalk.red(`Failed to delete branch: ${error.message}`));
-        return false;
+    // Check for unmerged commits
+    if (hasUnmergedCommits(branchName)) {
+      console.log(chalk.yellow(`\nBranch '${branchName}' has unmerged commits.`));
+      const { confirmDelete } = await inquirer.prompt([
+        {
+          type: 'confirm',
+          name: 'confirmDelete',
+          message: `Do you still want to delete the branch '${branchName}'?`,
+          default: false,
+        },
+      ]);
+      shouldDeleteBranch = confirmDelete;
+      userConfirmed = true;
+    }
+
+    if (shouldDeleteBranch) {
+      // If we haven't asked the user yet and worktree was removed, auto-delete
+      if (!userConfirmed && worktreeRemoved) {
+        console.log(chalk.yellow(`Automatically deleting branch ${branchName}...`));
+      } else if (!userConfirmed) {
+        // Only ask if we haven't already asked about unmerged commits
+        const { removeBranch } = await inquirer.prompt([
+          {
+            type: 'confirm',
+            name: 'removeBranch',
+            message: `Do you also want to delete the branch '${branchName}'?`,
+            default: true,
+          },
+        ]);
+        shouldDeleteBranch = removeBranch;
+      }
+
+      if (shouldDeleteBranch) {
+        console.log(chalk.yellow(`Deleting branch ${branchName}...`));
+        try {
+          execSync(`git branch -D "${branchName}"`, { stdio: 'inherit' });
+          console.log(chalk.green('✅ Branch deleted successfully'));
+        } catch (error) {
+          console.error(chalk.red(`Failed to delete branch: ${error.message}`));
+          return false;
+        }
       }
     }
   }
