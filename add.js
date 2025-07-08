@@ -81,9 +81,16 @@ async function createWorktree(branchName, options) {
       console.log(chalk.blue(`\nLaunching ${editor}...`));
       try {
         let command = editor;
-        if (options.prompt) {
-          // For Claude, pass prompt as positional argument
-          // For other editors, they might not support it but we'll pass it anyway
+        if (editor === 'claude') {
+          // Build Claude command with options
+          if (options.dangerouslySkipPermissions) {
+            command += ' --dangerously-skip-permissions';
+          }
+          if (options.prompt) {
+            command += ` "${options.prompt}"`;
+          }
+        } else if (options.prompt) {
+          // For other editors, they might not support prompts but we'll pass it anyway
           command = `${editor} "${options.prompt}"`;
         }
         execSync(command, { stdio: 'inherit', shell: true });
@@ -160,9 +167,16 @@ async function switchToWorktree(worktreePath, branchName, options = {}) {
       console.log(chalk.blue(`\nLaunching ${editor}...`));
       try {
         let command = editor;
-        if (options.prompt) {
-          // For Claude, pass prompt as positional argument
-          // For other editors, they might not support it but we'll pass it anyway
+        if (editor === 'claude') {
+          // Build Claude command with options
+          if (options.dangerouslySkipPermissions) {
+            command += ' --dangerously-skip-permissions';
+          }
+          if (options.prompt) {
+            command += ` "${options.prompt}"`;
+          }
+        } else if (options.prompt) {
+          // For other editors, they might not support prompts but we'll pass it anyway
           command = `${editor} "${options.prompt}"`;
         }
         execSync(command, { stdio: 'inherit', shell: true });
@@ -246,9 +260,16 @@ async function createWorktreeForExistingBranch(branchName, options) {
       console.log(chalk.blue(`\nLaunching ${editor}...`));
       try {
         let command = editor;
-        if (options.prompt) {
-          // For Claude, pass prompt as positional argument
-          // For other editors, they might not support it but we'll pass it anyway
+        if (editor === 'claude') {
+          // Build Claude command with options
+          if (options.dangerouslySkipPermissions) {
+            command += ' --dangerously-skip-permissions';
+          }
+          if (options.prompt) {
+            command += ` "${options.prompt}"`;
+          }
+        } else if (options.prompt) {
+          // For other editors, they might not support prompts but we'll pass it anyway
           command = `${editor} "${options.prompt}"`;
         }
         execSync(command, { stdio: 'inherit', shell: true });
@@ -413,6 +434,10 @@ export function createAddCommand(program) {
     .option('-n, --no-editor', 'Do not launch any editor')
     .option('-x, --from-existing', 'Choose from existing branches')
     .option('-p, --prompt <prompt>', 'Initial prompt to pass to Claude when launching')
+    .option(
+      '-d, --dangerously-skip-permissions',
+      'Skip permissions check in Claude (use with caution)'
+    )
     .action(async (branchName, options) => {
       // Check if the branch name is actually a subcommand
       const subcommands = program.commands.map((cmd) => cmd.name());

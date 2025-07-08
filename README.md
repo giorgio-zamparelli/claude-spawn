@@ -73,6 +73,10 @@ spawn fix-bug --no-editor       # Don't launch any editor
 spawn fix-bug --prompt "Fix the authentication bug in login.js"
 spawn fix-bug -p "Add user profile feature"
 
+# Skip permissions check in Claude (use with caution)
+spawn fix-bug --dangerously-skip-permissions
+spawn fix-bug -d
+
 # Select from existing branches
 spawn --from-existing
 spawn -x
@@ -103,6 +107,9 @@ spawn implement-api --editor code
 
 # Create a worktree and pass a prompt to Claude
 spawn new-feature --prompt "Implement user authentication with JWT"
+
+# Combine prompt with dangerous permissions (use cautiously)
+spawn admin-tools -p "Create admin dashboard" -d
 
 # Interactive mode with existing branches
 spawn -x
