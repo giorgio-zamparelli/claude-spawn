@@ -7,7 +7,7 @@ import getGitRootDirectory from './utils/getGitRootDirectory.js';
 import getCurrentBranch from './utils/getCurrentBranch.js';
 import getLocalBranches from './utils/getLocalBranches.js';
 import getWorktrees from './utils/getWorktrees.js';
-import { removeWorktree } from './remove.js';
+import { removeWorktree } from './utils/removeWorktree.js';
 import processDiffOutput from './utils/processDiffOutput.js';
 import setTerminalTabName from './utils/setTerminalTabName.js';
 
