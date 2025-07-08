@@ -18,10 +18,14 @@ export function processDiffOutput(diffOutput, maxLines = 500) {
   for (let i = 0; i < lines.length && lineCount < maxLines; i++) {
     const line = lines[i];
 
+    // Remove ANSI color codes for pattern matching
+    // eslint-disable-next-line no-control-regex
+    const cleanLine = line.replace(/\x1b\[[0-9;]*m/g, '');
+
     // Check for diff header
-    if (line.startsWith('diff --git')) {
+    if (cleanLine.startsWith('diff --git')) {
       // Extract filename from the diff header
-      const fileMatch = line.match(/diff --git a\/(.+) b\/.+/);
+      const fileMatch = cleanLine.match(/diff --git a\/(.+) b\/.+/);
       if (fileMatch) {
         const fileName = fileMatch[1];
         processedLines.push(''); // Empty line before file name
@@ -32,7 +36,7 @@ export function processDiffOutput(diffOutput, maxLines = 500) {
     }
 
     // Skip the --- and +++ lines as they're redundant
-    if (line.startsWith('---') || line.startsWith('+++')) {
+    if (cleanLine.startsWith('---') || cleanLine.startsWith('+++')) {
       continue;
     }
 
