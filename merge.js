@@ -9,6 +9,7 @@ import {
   getExistingBranches,
   getWorktrees,
 } from './utils/git.js';
+import { removeWorktree } from './remove.js';
 
 function hasUncommittedChanges() {
   try {
@@ -114,15 +115,31 @@ async function performMerge(branchName, currentBranch) {
       return false;
     }
 
-    // Perform the merge
+    // Perform the merge with automatic commit message
     console.log(chalk.yellow('\nPerforming merge...'));
-    execSync(`git merge ${branchName}`, { stdio: 'inherit' });
+    const mergeMessage = `Merge branch '${branchName}' into ${currentBranch}`;
+    execSync(`git merge ${branchName} -m "${mergeMessage}"`, { stdio: 'inherit' });
 
     console.log(chalk.green(`\n✅ Successfully merged '${branchName}' into '${currentBranch}'`));
 
     // Show merge summary
     console.log(chalk.blue('\nMerge summary:'));
     execSync('git --no-pager log --oneline --color=always -1', { stdio: 'inherit' });
+
+    // Ask if user wants to remove the merged branch/worktree
+    const { removeBranch } = await inquirer.prompt([
+      {
+        type: 'confirm',
+        name: 'removeBranch',
+        message: `Do you want to remove the branch '${branchName}' and its worktree?`,
+        default: true,
+      },
+    ]);
+
+    if (removeBranch) {
+      console.log(chalk.yellow(`\nRemoving branch '${branchName}' and its worktree...`));
+      await removeWorktree(branchName);
+    }
 
     return true;
   } catch (error) {

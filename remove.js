@@ -35,7 +35,7 @@ function hasUnmergedCommits(branchName) {
   }
 }
 
-async function removeWorktree(branchName) {
+export async function removeWorktree(branchName) {
   const worktrees = getWorktrees();
   const gitRoot = getGitRootDirectory();
   const repoName = path.basename(gitRoot);
