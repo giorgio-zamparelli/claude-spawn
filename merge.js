@@ -55,11 +55,63 @@ async function performMerge(branchName, currentBranch) {
 
     // Check for uncommitted changes
     if (hasUncommittedChanges()) {
+      // Check if we're in the middle of a merge
+      const status = execSync('git status --porcelain', { encoding: 'utf8' });
+      const hasConflicts =
+        status.includes('UU ') || status.includes('AA ') || status.includes('DD ');
+
+      // Also check if MERGE_HEAD exists (indicates an ongoing merge)
+      let inMergeState = false;
+      try {
+        execSync('git rev-parse --verify MERGE_HEAD', { stdio: 'pipe' });
+        inMergeState = true;
+      } catch {
+        // MERGE_HEAD doesn't exist, not in merge state
+      }
+
+      if (hasConflicts || inMergeState) {
+        console.error(chalk.red('Error: You have an unresolved merge from a previous operation.'));
+        console.log(
+          chalk.yellow('\nYou must complete or abort the existing merge before starting a new one.')
+        );
+
+        // Show conflicted files
+        console.log(chalk.blue('\nStatus:'));
+        const files = status
+          .trim()
+          .split('\n')
+          .filter((line) => line.trim());
+
+        files.forEach((file) => {
+          const [statusCode, ...fileParts] = file.split(' ');
+          const fileName = fileParts.join(' ');
+          let statusText = '';
+
+          if (statusCode.includes('U')) statusText = chalk.red('conflict');
+          else if (statusCode.includes('M')) statusText = chalk.yellow('modified');
+          else if (statusCode.includes('A')) statusText = chalk.green('added');
+          else if (statusCode.includes('D')) statusText = chalk.red('deleted');
+          else if (statusCode === '??') statusText = chalk.gray('untracked');
+
+          console.log(`  ${statusText}: ${fileName}`);
+        });
+
+        console.log(chalk.yellow('\n📝 Options:'));
+        console.log(chalk.gray('• To abort the current merge: git merge --abort'));
+        console.log(chalk.gray('• To resolve conflicts:'));
+        console.log(chalk.gray('  1. Fix conflicts in the files listed above'));
+        console.log(chalk.gray('  2. Stage resolved files: git add <file>'));
+        console.log(chalk.gray('  3. Complete the merge: git commit'));
+
+        // Restore terminal tab name
+        setTerminalTabName(currentBranch);
+        return false;
+      }
+
       console.error(chalk.red('Error: You have uncommitted changes.'));
 
       // Show status
       console.log(chalk.blue('\nUncommitted files:'));
-      const status = execSync('git status --porcelain', { encoding: 'utf8' });
       const files = status
         .trim()
         .split('\n')
