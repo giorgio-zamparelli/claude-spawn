@@ -8,7 +8,10 @@ export default function getLocalBranches() {
     .split('\n')
     .map((branch) => {
       // Remove the current branch marker (*) and any leading/trailing spaces
-      return branch.replace(/^\*?\s+/, '').trim();
+      let cleanBranch = branch.replace(/^\*?\s+/, '').trim();
+      // Also remove any leading + or - markers that git might add
+      cleanBranch = cleanBranch.replace(/^[+-]\s+/, '');
+      return cleanBranch;
     })
     .filter((branch) => branch && branch !== '');
 }

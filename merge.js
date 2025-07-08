@@ -252,7 +252,10 @@ async function interactiveMerge() {
     return;
   }
 
-  await performMerge(selectedBranch, currentBranch);
+  // Clean the branch name in case it has any unwanted prefixes
+  const cleanBranchName = selectedBranch.replace(/^[+-]\s*/, '').trim();
+
+  await performMerge(cleanBranchName, currentBranch);
 }
 
 export async function mergeCommand(branchName) {
