@@ -80,7 +80,13 @@ async function createWorktree(branchName, options) {
       const editor = options.editor || 'claude';
       console.log(chalk.blue(`\nLaunching ${editor}...`));
       try {
-        execSync(editor, { stdio: 'inherit' });
+        let command = editor;
+        if (options.prompt) {
+          // For Claude, pass prompt as positional argument
+          // For other editors, they might not support it but we'll pass it anyway
+          command = `${editor} "${options.prompt}"`;
+        }
+        execSync(command, { stdio: 'inherit', shell: true });
       } catch {
         console.error(
           chalk.yellow(
@@ -95,7 +101,7 @@ async function createWorktree(branchName, options) {
   }
 }
 
-async function switchToWorktree(worktreePath, branchName) {
+async function switchToWorktree(worktreePath, branchName, options = {}) {
   console.log(chalk.blue(`\nSwitching to worktree: ${worktreePath}`));
 
   // Check if the worktree directory exists
@@ -148,14 +154,25 @@ async function switchToWorktree(worktreePath, branchName) {
     process.chdir(worktreePath);
     console.log(chalk.green(`✅ Changed to ${worktreePath}`));
 
-    // Launch editor
-    console.log(chalk.blue(`\nLaunching claude...`));
-    try {
-      execSync('claude', { stdio: 'inherit' });
-    } catch {
-      console.error(
-        chalk.yellow(`Warning: Could not launch claude. Make sure it's installed and in your PATH.`)
-      );
+    // Launch editor if not disabled
+    if (!options.noEditor) {
+      const editor = options.editor || 'claude';
+      console.log(chalk.blue(`\nLaunching ${editor}...`));
+      try {
+        let command = editor;
+        if (options.prompt) {
+          // For Claude, pass prompt as positional argument
+          // For other editors, they might not support it but we'll pass it anyway
+          command = `${editor} "${options.prompt}"`;
+        }
+        execSync(command, { stdio: 'inherit', shell: true });
+      } catch {
+        console.error(
+          chalk.yellow(
+            `Warning: Could not launch ${editor}. Make sure it's installed and in your PATH.`
+          )
+        );
+      }
     }
   } catch (error) {
     console.error(chalk.red(`Error switching to worktree: ${error.message}`));
@@ -228,7 +245,13 @@ async function createWorktreeForExistingBranch(branchName, options) {
       const editor = options.editor || 'claude';
       console.log(chalk.blue(`\nLaunching ${editor}...`));
       try {
-        execSync(editor, { stdio: 'inherit' });
+        let command = editor;
+        if (options.prompt) {
+          // For Claude, pass prompt as positional argument
+          // For other editors, they might not support it but we'll pass it anyway
+          command = `${editor} "${options.prompt}"`;
+        }
+        execSync(command, { stdio: 'inherit', shell: true });
       } catch {
         console.error(
           chalk.yellow(
@@ -335,7 +358,7 @@ async function interactiveMode(options) {
 
   if (selection.type === 'switch') {
     const branchName = selection.branch ? selection.branch.replace('refs/heads/', '') : null;
-    await switchToWorktree(selection.path, branchName);
+    await switchToWorktree(selection.path, branchName, options);
     return;
   }
 
@@ -389,6 +412,7 @@ export function createAddCommand(program) {
     .option('-e, --editor <editor>', 'Editor to launch (default: claude)')
     .option('-n, --no-editor', 'Do not launch any editor')
     .option('-x, --from-existing', 'Choose from existing branches')
+    .option('-p, --prompt <prompt>', 'Initial prompt to pass to Claude when launching')
     .action(async (branchName, options) => {
       // Check if the branch name is actually a subcommand
       const subcommands = program.commands.map((cmd) => cmd.name());

@@ -69,6 +69,10 @@ spawn fix-bug --editor code    # Launch VS Code
 spawn fix-bug --editor claude   # Launch Claude (default)
 spawn fix-bug --no-editor       # Don't launch any editor
 
+# Pass a prompt to Claude
+spawn fix-bug --prompt "Fix the authentication bug in login.js"
+spawn fix-bug -p "Add user profile feature"
+
 # Select from existing branches
 spawn --from-existing
 spawn -x
@@ -96,6 +100,9 @@ spawn fix-memory-leak --no-editor
 
 # Use VS Code instead of Claude
 spawn implement-api --editor code
+
+# Create a worktree and pass a prompt to Claude
+spawn new-feature --prompt "Implement user authentication with JWT"
 
 # Interactive mode with existing branches
 spawn -x
