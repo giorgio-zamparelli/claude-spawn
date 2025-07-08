@@ -254,7 +254,23 @@ async function performMerge(branchName, currentBranch) {
     } else {
       const { ahead } = branchInfo;
       if (ahead === 0) {
-        console.log(chalk.yellow(`Branch '${branchName}' has no new commits to merge.`));
+        console.log(chalk.yellow(`\nBranch '${branchName}' has no new commits to merge.`));
+
+        // Ask if user wants to remove the branch/worktree
+        const { removeBranch } = await inquirer.prompt([
+          {
+            type: 'confirm',
+            name: 'removeBranch',
+            message: `Do you want to remove the branch '${branchName}' and its worktree?`,
+            default: false,
+          },
+        ]);
+
+        if (removeBranch) {
+          console.log(chalk.yellow(`\nRemoving branch '${branchName}' and its worktree...`));
+          await removeWorktree(branchName);
+        }
+
         // Restore terminal tab name
         setTerminalTabName(currentBranch);
         return true;
