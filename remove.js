@@ -10,6 +10,7 @@ import {
   getWorktrees,
   getExistingBranches,
 } from './utils/git.js';
+import { processDiffOutput } from './utils/diff.js';
 
 function hasUncommittedChanges(worktreePath) {
   try {
@@ -75,14 +76,7 @@ export async function removeWorktree(branchName) {
           { encoding: 'utf8', maxBuffer: 1024 * 1024 * 10 } // 10MB buffer
         );
 
-        const lines = diffOutput.split('\n');
-        if (lines.length > 300) {
-          // Show first 300 lines and indicate truncation
-          console.log(lines.slice(0, 300).join('\n'));
-          console.log(chalk.yellow(`\n... diff truncated (${lines.length - 300} more lines) ...`));
-        } else {
-          console.log(diffOutput || chalk.gray('No unstaged changes'));
-        }
+        console.log(processDiffOutput(diffOutput, 300));
 
         // Also show staged changes if any
         const stagedDiff = execSync(
@@ -92,15 +86,7 @@ export async function removeWorktree(branchName) {
 
         if (stagedDiff.trim()) {
           console.log(chalk.blue('\nStaged changes:'));
-          const stagedLines = stagedDiff.split('\n');
-          if (stagedLines.length > 300) {
-            console.log(stagedLines.slice(0, 300).join('\n'));
-            console.log(
-              chalk.yellow(`\n... diff truncated (${stagedLines.length - 300} more lines) ...`)
-            );
-          } else {
-            console.log(stagedDiff);
-          }
+          console.log(processDiffOutput(stagedDiff, 300));
         }
       } catch {
         console.log(chalk.gray('Could not generate diff'));

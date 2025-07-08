@@ -10,6 +10,7 @@ import {
   getWorktrees,
 } from './utils/git.js';
 import { removeWorktree } from './remove.js';
+import { processDiffOutput } from './utils/diff.js';
 
 function hasUncommittedChanges() {
   try {
@@ -88,14 +89,7 @@ async function performMerge(branchName, currentBranch) {
         { encoding: 'utf8', maxBuffer: 1024 * 1024 * 10 } // 10MB buffer
       );
 
-      const lines = diffOutput.split('\n');
-      if (lines.length > 500) {
-        // Show first 500 lines and indicate truncation
-        console.log(lines.slice(0, 500).join('\n'));
-        console.log(chalk.yellow(`\n... diff truncated (${lines.length - 500} more lines) ...`));
-      } else {
-        console.log(diffOutput);
-      }
+      console.log(processDiffOutput(diffOutput, 500));
     } catch {
       console.log(chalk.yellow('Could not generate diff preview'));
     }
