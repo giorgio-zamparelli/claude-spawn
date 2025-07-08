@@ -9,6 +9,7 @@ import getLocalBranches from './utils/getLocalBranches.js';
 import getWorktrees from './utils/getWorktrees.js';
 import { removeWorktree } from './remove.js';
 import processDiffOutput from './utils/processDiffOutput.js';
+import setTerminalTabName from './utils/setTerminalTabName.js';
 
 function hasUncommittedChanges() {
   try {
@@ -34,6 +35,9 @@ function getBranchAheadBehind(branch, baseBranch) {
 }
 
 async function performMerge(branchName, currentBranch) {
+  // Set terminal tab name to show merge operation
+  setTerminalTabName(`merge ${branchName}`);
+
   console.log(
     chalk.blue(`\nMerging ${chalk.white(branchName)} into ${chalk.white(currentBranch)}...\n`)
   );
@@ -44,6 +48,8 @@ async function performMerge(branchName, currentBranch) {
     if (!branches.includes(branchName)) {
       console.error(chalk.red(`Error: Branch '${branchName}' does not exist locally`));
       console.log(chalk.yellow('Tip: Use git fetch to update remote branches'));
+      // Restore terminal tab name
+      setTerminalTabName(currentBranch);
       return false;
     }
 
@@ -130,6 +136,8 @@ async function performMerge(branchName, currentBranch) {
             console.log(chalk.green('✅ Changes committed successfully'));
           } catch {
             console.error(chalk.red('Failed to commit changes'));
+            // Restore terminal tab name
+            setTerminalTabName(currentBranch);
             return false;
           }
           break;
@@ -141,6 +149,8 @@ async function performMerge(branchName, currentBranch) {
             console.log(chalk.green('✅ Changes stashed successfully'));
           } catch {
             console.error(chalk.red('Failed to stash changes'));
+            // Restore terminal tab name
+            setTerminalTabName(currentBranch);
             return false;
           }
           break;
@@ -162,9 +172,13 @@ async function performMerge(branchName, currentBranch) {
               console.log(chalk.yellow('⚠️  All changes discarded'));
             } catch {
               console.error(chalk.red('Failed to discard changes'));
+              // Restore terminal tab name
+              setTerminalTabName(currentBranch);
               return false;
             }
           } else {
+            // Restore terminal tab name
+            setTerminalTabName(currentBranch);
             return false;
           }
           break;
@@ -173,6 +187,8 @@ async function performMerge(branchName, currentBranch) {
         case 'cancel':
         default:
           console.log(chalk.gray('Merge cancelled.'));
+          // Restore terminal tab name
+          setTerminalTabName(currentBranch);
           return false;
       }
     }
@@ -187,6 +203,8 @@ async function performMerge(branchName, currentBranch) {
       const { ahead } = branchInfo;
       if (ahead === 0) {
         console.log(chalk.yellow(`Branch '${branchName}' has no new commits to merge.`));
+        // Restore terminal tab name
+        setTerminalTabName(currentBranch);
         return true;
       }
       console.log(
@@ -232,6 +250,8 @@ async function performMerge(branchName, currentBranch) {
 
     if (!confirmMerge) {
       console.log(chalk.gray('Merge cancelled.'));
+      // Restore terminal tab name
+      setTerminalTabName(currentBranch);
       return false;
     }
 
@@ -262,6 +282,9 @@ async function performMerge(branchName, currentBranch) {
         console.log(chalk.yellow(`\nRemoving branch '${branchName}' and its worktree...`));
         await removeWorktree(branchName);
       }
+
+      // Restore terminal tab name to current branch
+      setTerminalTabName(currentBranch);
     } catch (mergeError) {
       // Check if this is a merge conflict
       const status = execSync('git status --porcelain', { encoding: 'utf8' });
@@ -288,6 +311,8 @@ async function performMerge(branchName, currentBranch) {
         console.log(chalk.gray('3. Complete the merge: git commit'));
         console.log(chalk.gray('4. Or abort the merge: git merge --abort'));
 
+        // Restore terminal tab name
+        setTerminalTabName(currentBranch);
         return false;
       }
 
@@ -298,6 +323,8 @@ async function performMerge(branchName, currentBranch) {
     return true;
   } catch (error) {
     console.error(chalk.red(`\nError during merge: ${error.message}`));
+    // Restore terminal tab name
+    setTerminalTabName(currentBranch);
     return false;
   }
 }
