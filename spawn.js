@@ -11,7 +11,9 @@ import { createApproveCommand } from './approve.js';
 // Setup commander
 program
   .name('spawn')
-  .description('Git worktree management tool - creates timestamped worktrees')
+  .description(
+    'Manage multiple Claude Code instances in parallel using Git worktrees - work on different features simultaneously without conflicts'
+  )
   .version('1.0.0');
 
 // Add list subcommand

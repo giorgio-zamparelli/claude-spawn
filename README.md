@@ -1,6 +1,6 @@
 # Claude Spawn
 
-A CLI tool to launch Claude in a new git worktree directory with just one command.
+A powerful CLI tool for managing multiple Claude Code instances in parallel using Git worktrees. Run several Claude Code sessions simultaneously on different branches without context switching or repository conflicts.
 
 ## Installation
 
@@ -25,17 +25,27 @@ spawn feature-branch-name
 spawn --list
 ```
 
+## Why Claude Spawn?
+
+When working with Claude Code on complex projects, you often need to:
+
+- Work on multiple features simultaneously
+- Test different approaches in parallel
+- Keep separate Claude Code sessions for different tasks
+- Avoid conflicts between concurrent development efforts
+
+Claude Spawn solves this by creating isolated Git worktrees, each with its own Claude Code instance, allowing true parallel development.
+
 ## Features
 
-- Create git worktrees with REPO-BRANCH naming (e.g., waiterio-three)
-- Interactive mode with colorful prompts using Inquirer.js and Chalk
-- Single menu to select existing worktrees or create new ones
-- Switch between worktrees with automatic editor launch
-- Choose from existing branches or create new ones
-- Automatic editor launch (Claude, VS Code, or none)
-- Branch name validation
-- List all existing worktrees with colored output
-- Handle existing worktree conflicts
+- **Parallel Claude Code Sessions**: Run multiple Claude Code instances simultaneously on different branches
+- **Git Worktree Management**: Create, switch, and manage worktrees with REPO-BRANCH naming (e.g., waiterio-fix-auth)
+- **Interactive Workflow**: Colorful prompts guide you through worktree creation and management
+- **Smart Branch Handling**: Create new branches or use existing ones, with automatic validation
+- **Editor Integration**: Automatically launch Claude Code, VS Code, or work without an editor
+- **Seamless Context Switching**: Jump between different Claude Code sessions without losing context
+- **Merge Management**: Built-in tools to merge changes between parallel development branches
+- **Cleanup Tools**: Remove worktrees and branches when tasks are complete
 
 ## Usage
 
@@ -88,31 +98,51 @@ spawn -h
 
 ## How It Works
 
-1. Validates that you're in a git repository
-2. Creates a worktree in the parent directory with format: `<repo-name>-<branch-name>`
-3. Creates and checks out a new branch
-4. Automatically launches Claude editor (or specified editor)
+1. **Validates** that you're in a git repository
+2. **Creates** a worktree in the parent directory with format: `<repo-name>-<branch-name>`
+3. **Isolates** each worktree with its own branch and working directory
+4. **Launches** Claude Code in the new worktree (keeping each session separate)
+5. **Enables** parallel development without interference between sessions
+
+This allows you to have multiple Claude Code instances working on different features simultaneously, each in its own isolated environment.
 
 ## Examples
 
+### Managing Multiple Claude Code Sessions
+
 ```bash
-# Create a feature branch
-spawn add-login-feature
+# Start working on authentication in one Claude Code instance
+spawn fix-auth-bug
 
-# Create a bugfix without launching editor
-spawn fix-memory-leak --no-editor
+# While that's running, start another Claude Code session for a new feature
+spawn add-user-profiles
 
-# Use VS Code instead of Claude
+# And another for documentation updates
+spawn update-docs
+
+# Now you have 3 Claude Code instances running in parallel!
+```
+
+### Common Workflows
+
+```bash
+# Create a feature branch with a specific task for Claude
+spawn add-login-feature --prompt "Implement OAuth2 login with Google"
+
+# Work on a bug fix in a separate Claude session
+spawn fix-memory-leak -p "Find and fix the memory leak in the data processing module"
+
+# Quick fix without launching Claude
+spawn hotfix-config --no-editor
+
+# Use VS Code for manual editing while Claude works on other branches
 spawn implement-api --editor code
 
-# Create a worktree and pass a prompt to Claude
-spawn new-feature --prompt "Implement user authentication with JWT"
+# Merge your parallel work back to main
+spawn merge fix-auth-bug
 
-# Combine prompt with dangerous permissions (use cautiously)
-spawn admin-tools -p "Create admin dashboard" -d
-
-# Interactive mode with existing branches
-spawn -x
+# Clean up completed work
+spawn remove add-user-profiles
 ```
 
 ## Requirements
