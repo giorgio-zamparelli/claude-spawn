@@ -57,11 +57,71 @@ async function removeWorktree(branchName) {
 
     // Check for uncommitted changes
     if (fs.existsSync(worktree.path) && hasUncommittedChanges(worktree.path)) {
-      console.error(chalk.red(`Error: Worktree has uncommitted changes at ${worktree.path}`));
-      console.log(
-        chalk.yellow('Please commit or stash your changes before removing the worktree.')
-      );
-      return false;
+      console.log(chalk.yellow(`\nWorktree has uncommitted changes at ${worktree.path}`));
+
+      // Show uncommitted files
+      console.log(chalk.blue('\nUncommitted files:'));
+      try {
+        execSync(`git -C "${worktree.path}" status --short`, { stdio: 'inherit' });
+      } catch {
+        console.log(chalk.gray('Could not retrieve file list'));
+      }
+
+      // Show diff without pager
+      console.log(chalk.blue('\nUncommitted changes:'));
+      try {
+        const diffOutput = execSync(
+          `git -C "${worktree.path}" --no-pager diff --color=always`,
+          { encoding: 'utf8', maxBuffer: 1024 * 1024 * 10 } // 10MB buffer
+        );
+
+        const lines = diffOutput.split('\n');
+        if (lines.length > 300) {
+          // Show first 300 lines and indicate truncation
+          console.log(lines.slice(0, 300).join('\n'));
+          console.log(chalk.yellow(`\n... diff truncated (${lines.length - 300} more lines) ...`));
+        } else {
+          console.log(diffOutput || chalk.gray('No unstaged changes'));
+        }
+
+        // Also show staged changes if any
+        const stagedDiff = execSync(
+          `git -C "${worktree.path}" --no-pager diff --cached --color=always`,
+          { encoding: 'utf8', maxBuffer: 1024 * 1024 * 10 }
+        );
+
+        if (stagedDiff.trim()) {
+          console.log(chalk.blue('\nStaged changes:'));
+          const stagedLines = stagedDiff.split('\n');
+          if (stagedLines.length > 300) {
+            console.log(stagedLines.slice(0, 300).join('\n'));
+            console.log(
+              chalk.yellow(`\n... diff truncated (${stagedLines.length - 300} more lines) ...`)
+            );
+          } else {
+            console.log(stagedDiff);
+          }
+        }
+      } catch {
+        console.log(chalk.gray('Could not generate diff'));
+      }
+
+      // Ask if user wants to force remove
+      const { forceRemove } = await inquirer.prompt([
+        {
+          type: 'confirm',
+          name: 'forceRemove',
+          message: chalk.red(
+            'Do you want to delete these uncommitted changes and remove the worktree anyway?'
+          ),
+          default: false,
+        },
+      ]);
+
+      if (!forceRemove) {
+        console.log(chalk.gray('Removal cancelled.'));
+        return false;
+      }
     }
 
     console.log(chalk.yellow(`Removing worktree at ${worktree.path}...`));
