@@ -68,7 +68,36 @@ async function performMerge(branchName, currentBranch) {
 
     // Show preview of commits to be merged
     console.log(chalk.blue('\nCommits to be merged:'));
-    execSync(`git log --oneline ${currentBranch}..${branchName}`, { stdio: 'inherit' });
+    execSync(`git --no-pager log --oneline --color=always ${currentBranch}..${branchName}`, {
+      stdio: 'inherit',
+    });
+
+    // Show file changes summary
+    console.log(chalk.blue('\nFiles to be changed:'));
+    execSync(`git --no-pager diff --stat --color=always ${currentBranch}...${branchName}`, {
+      stdio: 'inherit',
+    });
+
+    // Show actual diff (limited to prevent overwhelming output)
+    console.log(chalk.blue('\nChanges preview:'));
+    try {
+      // Get diff with context limited to 3 lines and no more than 500 lines total
+      const diffOutput = execSync(
+        `git --no-pager diff --color=always --unified=3 ${currentBranch}...${branchName}`,
+        { encoding: 'utf8', maxBuffer: 1024 * 1024 * 10 } // 10MB buffer
+      );
+
+      const lines = diffOutput.split('\n');
+      if (lines.length > 500) {
+        // Show first 500 lines and indicate truncation
+        console.log(lines.slice(0, 500).join('\n'));
+        console.log(chalk.yellow(`\n... diff truncated (${lines.length - 500} more lines) ...`));
+      } else {
+        console.log(diffOutput);
+      }
+    } catch {
+      console.log(chalk.yellow('Could not generate diff preview'));
+    }
 
     // Confirm merge
     const { confirmMerge } = await inquirer.prompt([
@@ -93,7 +122,7 @@ async function performMerge(branchName, currentBranch) {
 
     // Show merge summary
     console.log(chalk.blue('\nMerge summary:'));
-    execSync('git log --oneline -1', { stdio: 'inherit' });
+    execSync('git --no-pager log --oneline --color=always -1', { stdio: 'inherit' });
 
     return true;
   } catch (error) {
