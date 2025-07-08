@@ -2,15 +2,13 @@ import { execSync } from 'child_process';
 import path from 'path';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
-import {
-  isGitRepository,
-  getGitRootDirectory,
-  getCurrentBranch,
-  getExistingBranches,
-  getWorktrees,
-} from './utils/git.js';
+import isGitRepository from './utils/isGitRepository.js';
+import getGitRootDirectory from './utils/getGitRootDirectory.js';
+import getCurrentBranch from './utils/getCurrentBranch.js';
+import getLocalBranches from './utils/getLocalBranches.js';
+import getWorktrees from './utils/getWorktrees.js';
 import { removeWorktree } from './remove.js';
-import { processDiffOutput } from './utils/diff.js';
+import processDiffOutput from './utils/processDiffOutput.js';
 
 function hasUncommittedChanges() {
   try {
@@ -25,11 +23,13 @@ function getBranchAheadBehind(branch, baseBranch) {
   try {
     const result = execSync(`git rev-list --left-right --count ${baseBranch}...${branch}`, {
       encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'pipe'], // Suppress stderr
     });
     const [behind, ahead] = result.trim().split('\t').map(Number);
     return { ahead, behind };
   } catch {
-    return { ahead: 0, behind: 0 };
+    // Return null to indicate the branch comparison failed
+    return null;
   }
 }
 
@@ -39,10 +39,11 @@ async function performMerge(branchName, currentBranch) {
   );
 
   try {
-    // Check if the branch exists
-    const branches = getExistingBranches();
+    // Check if the branch exists locally
+    const branches = getLocalBranches();
     if (!branches.includes(branchName)) {
-      console.error(chalk.red(`Error: Branch '${branchName}' does not exist`));
+      console.error(chalk.red(`Error: Branch '${branchName}' does not exist locally`));
+      console.log(chalk.yellow('Tip: Use git fetch to update remote branches'));
       return false;
     }
 
@@ -58,15 +59,21 @@ async function performMerge(branchName, currentBranch) {
     }
 
     // Show what will be merged
-    const { ahead } = getBranchAheadBehind(branchName, currentBranch);
-    if (ahead === 0) {
-      console.log(chalk.yellow(`Branch '${branchName}' has no new commits to merge.`));
-      return true;
+    const branchInfo = getBranchAheadBehind(branchName, currentBranch);
+    if (!branchInfo) {
+      console.log(
+        chalk.yellow(`Could not determine branch relationship. Proceeding with merge...`)
+      );
+    } else {
+      const { ahead } = branchInfo;
+      if (ahead === 0) {
+        console.log(chalk.yellow(`Branch '${branchName}' has no new commits to merge.`));
+        return true;
+      }
+      console.log(
+        chalk.gray(`Branch '${branchName}' is ${ahead} commit(s) ahead of '${currentBranch}'.`)
+      );
     }
-
-    console.log(
-      chalk.gray(`Branch '${branchName}' is ${ahead} commit(s) ahead of '${currentBranch}'.`)
-    );
 
     // Show preview of commits to be merged
     console.log(chalk.blue('\nCommits to be merged:'));
@@ -170,8 +177,8 @@ async function interactiveMerge() {
 
   console.log(chalk.gray(`Current branch: ${chalk.white(currentBranch)}`));
 
-  // Get all branches except current
-  const branches = getExistingBranches().filter((branch) => branch !== currentBranch);
+  // Get local branches only (not remote branches)
+  const branches = getLocalBranches().filter((branch) => branch !== currentBranch);
 
   if (branches.length === 0) {
     console.log(chalk.yellow('No other branches available to merge.'));
@@ -188,16 +195,19 @@ async function interactiveMerge() {
       (wt) => wt.branch && wt.branch.replace('refs/heads/', '') === branch
     );
 
-    const { ahead, behind } = getBranchAheadBehind(branch, currentBranch);
+    const branchInfo = getBranchAheadBehind(branch, currentBranch);
 
     let name = chalk.yellow(branch);
 
-    // Add ahead/behind info
-    if (ahead > 0 || behind > 0) {
-      const status = [];
-      if (ahead > 0) status.push(chalk.green(`↑${ahead}`));
-      if (behind > 0) status.push(chalk.red(`↓${behind}`));
-      name += chalk.gray(` (${status.join(' ')})`);
+    // Add ahead/behind info if available
+    if (branchInfo) {
+      const { ahead, behind } = branchInfo;
+      if (ahead > 0 || behind > 0) {
+        const status = [];
+        if (ahead > 0) status.push(chalk.green(`↑${ahead}`));
+        if (behind > 0) status.push(chalk.red(`↓${behind}`));
+        name += chalk.gray(` (${status.join(' ')})`);
+      }
     }
 
     // Add worktree info

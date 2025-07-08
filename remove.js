@@ -3,14 +3,12 @@ import path from 'path';
 import fs from 'fs';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
-import {
-  executeCommand,
-  isGitRepository,
-  getGitRootDirectory,
-  getWorktrees,
-  getExistingBranches,
-} from './utils/git.js';
-import { processDiffOutput } from './utils/diff.js';
+import executeCommand from './utils/executeCommand.js';
+import isGitRepository from './utils/isGitRepository.js';
+import getGitRootDirectory from './utils/getGitRootDirectory.js';
+import getWorktrees from './utils/getWorktrees.js';
+import getExistingBranches from './utils/getExistingBranches.js';
+import processDiffOutput from './utils/processDiffOutput.js';
 
 function hasUncommittedChanges(worktreePath) {
   try {

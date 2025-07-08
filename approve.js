@@ -2,7 +2,9 @@ import { execSync } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import chalk from 'chalk';
-import { isGitRepository, getGitRootDirectory, getCurrentBranch } from './utils/git.js';
+import isGitRepository from './utils/isGitRepository.js';
+import getGitRootDirectory from './utils/getGitRootDirectory.js';
+import getCurrentBranch from './utils/getCurrentBranch.js';
 
 function hasUncommittedChanges() {
   try {

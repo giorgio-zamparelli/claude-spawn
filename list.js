@@ -1,6 +1,8 @@
 import path from 'path';
 import chalk from 'chalk';
-import { isGitRepository, getGitRootDirectory, getWorktrees } from './utils/git.js';
+import isGitRepository from './utils/isGitRepository.js';
+import getGitRootDirectory from './utils/getGitRootDirectory.js';
+import getWorktrees from './utils/getWorktrees.js';
 
 export async function listWorktrees() {
   if (!isGitRepository()) {

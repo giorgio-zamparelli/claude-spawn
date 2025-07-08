@@ -6,7 +6,7 @@ import chalk from 'chalk';
  * @param {number} maxLines - Maximum number of lines to display
  * @returns {string} Processed diff output
  */
-export function processDiffOutput(diffOutput, maxLines = 500) {
+export default function processDiffOutput(diffOutput, maxLines = 500) {
   if (!diffOutput || !diffOutput.trim()) {
     return chalk.gray('No changes');
   }

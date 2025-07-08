@@ -2,13 +2,11 @@ import { execSync } from 'child_process';
 import path from 'path';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
-import {
-  isGitRepository,
-  getGitRootDirectory,
-  getCurrentBranch,
-  getExistingBranches,
-  getWorktrees,
-} from './utils/git.js';
+import isGitRepository from './utils/isGitRepository.js';
+import getGitRootDirectory from './utils/getGitRootDirectory.js';
+import getCurrentBranch from './utils/getCurrentBranch.js';
+import getExistingBranches from './utils/getExistingBranches.js';
+import getWorktrees from './utils/getWorktrees.js';
 
 function runGitDiff(branchName, currentBranch) {
   console.log(

@@ -3,14 +3,13 @@ import path from 'path';
 import fs from 'fs';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
-import {
-  isGitRepository,
-  getGitRootDirectory,
-  getCurrentBranch,
-  getExistingBranches,
-  getWorktrees,
-  validateBranchName,
-} from './utils/git.js';
+import isGitRepository from './utils/isGitRepository.js';
+import getGitRootDirectory from './utils/getGitRootDirectory.js';
+import getCurrentBranch from './utils/getCurrentBranch.js';
+import getExistingBranches from './utils/getExistingBranches.js';
+import getWorktrees from './utils/getWorktrees.js';
+import validateBranchName from './utils/validateBranchName.js';
+import setTerminalTabName from './utils/setTerminalTabName.js';
 
 function worktreeExists(worktreePath) {
   return fs.existsSync(worktreePath);
@@ -74,6 +73,9 @@ async function createWorktree(branchName, options) {
     console.log(chalk.blue(`Changing to worktree directory: ${worktreePath}`));
 
     process.chdir(worktreePath);
+
+    // Set terminal tab name to the branch name
+    setTerminalTabName(branchName);
 
     // Launch editor if not disabled
     if (!options.noEditor) {
@@ -160,6 +162,11 @@ async function switchToWorktree(worktreePath, branchName, options = {}) {
   try {
     process.chdir(worktreePath);
     console.log(chalk.green(`✅ Changed to ${worktreePath}`));
+
+    // Set terminal tab name to the branch name
+    if (branchName) {
+      setTerminalTabName(branchName.replace('refs/heads/', ''));
+    }
 
     // Launch editor if not disabled
     if (!options.noEditor) {
@@ -253,6 +260,9 @@ async function createWorktreeForExistingBranch(branchName, options) {
     console.log(chalk.blue(`Changing to worktree directory: ${worktreePath}`));
 
     process.chdir(worktreePath);
+
+    // Set terminal tab name to the branch name
+    setTerminalTabName(branchName);
 
     // Launch editor if not disabled
     if (!options.noEditor) {
