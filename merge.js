@@ -50,12 +50,131 @@ async function performMerge(branchName, currentBranch) {
     // Check for uncommitted changes
     if (hasUncommittedChanges()) {
       console.error(chalk.red('Error: You have uncommitted changes.'));
-      console.log(chalk.yellow('Please commit or stash your changes before merging.'));
 
       // Show status
-      console.log(chalk.gray('\nCurrent status:'));
-      execSync('git status --short', { stdio: 'inherit' });
-      return false;
+      console.log(chalk.blue('\nUncommitted files:'));
+      const status = execSync('git status --porcelain', { encoding: 'utf8' });
+      const files = status
+        .trim()
+        .split('\n')
+        .filter((line) => line.trim());
+
+      files.forEach((file) => {
+        const [statusCode, ...fileParts] = file.split(' ');
+        const fileName = fileParts.join(' ');
+        let statusText = '';
+
+        if (statusCode.includes('M')) statusText = chalk.yellow('modified');
+        else if (statusCode.includes('A')) statusText = chalk.green('added');
+        else if (statusCode.includes('D')) statusText = chalk.red('deleted');
+        else if (statusCode.includes('U')) statusText = chalk.red('conflict');
+        else if (statusCode === '??') statusText = chalk.gray('untracked');
+
+        console.log(`  ${statusText}: ${fileName}`);
+      });
+
+      // Show diff for tracked files
+      console.log(chalk.blue('\nChanges:'));
+      try {
+        // Show staged changes
+        const stagedDiff = execSync('git --no-pager diff --cached --color=always', {
+          encoding: 'utf8',
+          maxBuffer: 1024 * 1024 * 10,
+        });
+        if (stagedDiff.trim()) {
+          console.log(chalk.gray('\nStaged changes:'));
+          console.log(processDiffOutput(stagedDiff, 300));
+        }
+
+        // Show unstaged changes
+        const unstagedDiff = execSync('git --no-pager diff --color=always', {
+          encoding: 'utf8',
+          maxBuffer: 1024 * 1024 * 10,
+        });
+        if (unstagedDiff.trim()) {
+          console.log(chalk.gray('\nUnstaged changes:'));
+          console.log(processDiffOutput(unstagedDiff, 300));
+        }
+      } catch {
+        console.log(chalk.yellow('Could not generate diff preview'));
+      }
+
+      // Ask user what to do
+      const { action } = await inquirer.prompt([
+        {
+          type: 'list',
+          name: 'action',
+          message: 'What would you like to do?',
+          choices: [
+            { name: 'Commit changes', value: 'commit' },
+            { name: 'Stash changes', value: 'stash' },
+            { name: 'Discard changes (reset --hard)', value: 'discard' },
+            { name: 'Cancel merge', value: 'cancel' },
+          ],
+        },
+      ]);
+
+      switch (action) {
+        case 'commit': {
+          const { commitMessage } = await inquirer.prompt([
+            {
+              type: 'input',
+              name: 'commitMessage',
+              message: 'Enter commit message:',
+              validate: (input) => input.trim().length > 0 || 'Commit message cannot be empty',
+            },
+          ]);
+          try {
+            execSync('git add -A', { stdio: 'inherit' });
+            execSync(`git commit -m "${commitMessage}"`, { stdio: 'inherit' });
+            console.log(chalk.green('✅ Changes committed successfully'));
+          } catch {
+            console.error(chalk.red('Failed to commit changes'));
+            return false;
+          }
+          break;
+        }
+
+        case 'stash':
+          try {
+            execSync('git stash push -m "Pre-merge stash"', { stdio: 'inherit' });
+            console.log(chalk.green('✅ Changes stashed successfully'));
+          } catch {
+            console.error(chalk.red('Failed to stash changes'));
+            return false;
+          }
+          break;
+
+        case 'discard': {
+          const { confirmDiscard } = await inquirer.prompt([
+            {
+              type: 'confirm',
+              name: 'confirmDiscard',
+              message: chalk.red(
+                'Are you sure you want to discard all changes? This cannot be undone!'
+              ),
+              default: false,
+            },
+          ]);
+          if (confirmDiscard) {
+            try {
+              execSync('git reset --hard', { stdio: 'inherit' });
+              console.log(chalk.yellow('⚠️  All changes discarded'));
+            } catch {
+              console.error(chalk.red('Failed to discard changes'));
+              return false;
+            }
+          } else {
+            return false;
+          }
+          break;
+        }
+
+        case 'cancel':
+        default:
+          console.log(chalk.gray('Merge cancelled.'));
+          return false;
+      }
     }
 
     // Show what will be merged
@@ -119,49 +238,66 @@ async function performMerge(branchName, currentBranch) {
     // Perform the merge with automatic commit message
     console.log(chalk.yellow('\nPerforming merge...'));
     const mergeMessage = `Merge branch '${branchName}' into ${currentBranch}`;
-    execSync(`git merge ${branchName} -m "${mergeMessage}"`, { stdio: 'inherit' });
 
-    console.log(chalk.green(`\n✅ Successfully merged '${branchName}' into '${currentBranch}'`));
+    try {
+      execSync(`git merge ${branchName} -m "${mergeMessage}"`, { stdio: 'inherit' });
 
-    // Show merge summary
-    console.log(chalk.blue('\nMerge summary:'));
-    execSync('git --no-pager log --oneline --color=always -1', { stdio: 'inherit' });
+      console.log(chalk.green(`\n✅ Successfully merged '${branchName}' into '${currentBranch}'`));
 
-    // Ask if user wants to remove the merged branch/worktree
-    const { removeBranch } = await inquirer.prompt([
-      {
-        type: 'confirm',
-        name: 'removeBranch',
-        message: `Do you want to remove the branch '${branchName}' and its worktree?`,
-        default: true,
-      },
-    ]);
+      // Show merge summary
+      console.log(chalk.blue('\nMerge summary:'));
+      execSync('git --no-pager log --oneline --color=always -1', { stdio: 'inherit' });
 
-    if (removeBranch) {
-      console.log(chalk.yellow(`\nRemoving branch '${branchName}' and its worktree...`));
-      await removeWorktree(branchName);
+      // Ask if user wants to remove the merged branch/worktree
+      const { removeBranch } = await inquirer.prompt([
+        {
+          type: 'confirm',
+          name: 'removeBranch',
+          message: `Do you want to remove the branch '${branchName}' and its worktree?`,
+          default: true,
+        },
+      ]);
+
+      if (removeBranch) {
+        console.log(chalk.yellow(`\nRemoving branch '${branchName}' and its worktree...`));
+        await removeWorktree(branchName);
+      }
+    } catch (mergeError) {
+      // Check if this is a merge conflict
+      const status = execSync('git status --porcelain', { encoding: 'utf8' });
+      if (status.includes('UU ') || status.includes('AA ') || status.includes('DD ')) {
+        // Merge conflict detected
+        console.log(chalk.yellow('\n⚠️  Merge conflict detected!'));
+        console.log(chalk.blue('\nConflicted files:'));
+
+        // Show conflicted files
+        const conflictedFiles = status
+          .split('\n')
+          .filter(
+            (line) => line.startsWith('UU ') || line.startsWith('AA ') || line.startsWith('DD ')
+          )
+          .map((line) => line.substring(3));
+
+        conflictedFiles.forEach((file) => {
+          console.log(chalk.red(`  • ${file}`));
+        });
+
+        console.log(chalk.yellow('\n📝 To resolve:'));
+        console.log(chalk.gray('1. Fix the conflicts in the listed files'));
+        console.log(chalk.gray('2. Stage the resolved files: git add <file>'));
+        console.log(chalk.gray('3. Complete the merge: git commit'));
+        console.log(chalk.gray('4. Or abort the merge: git merge --abort'));
+
+        return false;
+      }
+
+      // Other merge error
+      throw mergeError;
     }
 
     return true;
   } catch (error) {
-    if (error.status === 1 && error.stdout && error.stdout.includes('CONFLICT')) {
-      console.error(chalk.red('\n❌ Merge conflict detected!'));
-      console.log(chalk.yellow('\nTo resolve:'));
-      console.log(chalk.gray('1. Fix the conflicts in the listed files'));
-      console.log(chalk.gray('2. Stage the resolved files: git add <file>'));
-      console.log(chalk.gray('3. Complete the merge: git commit'));
-      console.log(chalk.gray('4. Or abort the merge: git merge --abort'));
-
-      // Show conflicted files
-      console.log(chalk.red('\nConflicted files:'));
-      try {
-        execSync('git diff --name-only --diff-filter=U', { stdio: 'inherit' });
-      } catch {
-        // Ignore error
-      }
-    } else {
-      console.error(chalk.red(`\nError during merge: ${error.message}`));
-    }
+    console.error(chalk.red(`\nError during merge: ${error.message}`));
     return false;
   }
 }
