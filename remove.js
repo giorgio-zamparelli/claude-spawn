@@ -34,7 +34,8 @@ function hasUnmergedCommits(branchName) {
   }
 }
 
-export async function removeWorktree(branchName) {
+export async function removeWorktree(branchName, options = {}) {
+  const { forceDeleteBranch = false } = options;
   const worktrees = getWorktrees();
   const gitRoot = getGitRootDirectory();
   const repoName = path.basename(gitRoot);
@@ -142,7 +143,8 @@ export async function removeWorktree(branchName) {
 
     if (shouldDeleteBranch) {
       // If we haven't asked the user yet and worktree was removed, auto-delete
-      if (!userConfirmed && worktreeRemoved) {
+      // Also auto-delete if called from merge command (when no worktree exists but branch does)
+      if (!userConfirmed && (worktreeRemoved || !worktree || forceDeleteBranch)) {
         console.log(chalk.yellow(`Automatically deleting branch ${branchName}...`));
       } else if (!userConfirmed) {
         // Only ask if we haven't already asked about unmerged commits

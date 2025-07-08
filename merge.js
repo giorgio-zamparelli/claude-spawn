@@ -268,7 +268,7 @@ async function performMerge(branchName, currentBranch) {
 
         if (removeBranch) {
           console.log(chalk.yellow(`\nRemoving branch '${branchName}' and its worktree...`));
-          await removeWorktree(branchName);
+          await removeWorktree(branchName, { forceDeleteBranch: true });
         }
 
         // Restore terminal tab name
@@ -348,7 +348,7 @@ async function performMerge(branchName, currentBranch) {
 
       if (removeBranch) {
         console.log(chalk.yellow(`\nRemoving branch '${branchName}' and its worktree...`));
-        await removeWorktree(branchName);
+        await removeWorktree(branchName, { forceDeleteBranch: true });
       }
 
       // Restore terminal tab name to current branch
